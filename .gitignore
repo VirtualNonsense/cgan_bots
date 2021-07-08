@@ -98,3 +98,6 @@ modules.xml
 
 secrets.py
 /project_cgan.egg-info
+/build
+/dist
+/models
