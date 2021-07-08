@@ -2,3 +2,6 @@ torch
 pytorch-lightning
 python-telegram-bot
 tensorboard
+setuptools~=49.6.0
+numpy~=1.21.0
+torchvision~=0.10.0
