@@ -7,8 +7,10 @@ import torchvision
 from telegram.ext import (Updater,
                           CommandHandler,
                           Dispatcher,
-                          CallbackContext)
+                          CallbackContext,
+                          CallbackQueryHandler)
 from telegram.update import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class CGANBot:
@@ -20,6 +22,7 @@ class CGANBot:
         self.__dispatcher: Dispatcher = self.__updater.dispatcher
         self.__dispatcher.add_handler(CommandHandler("classes", self.get_classes))
         self.__dispatcher.add_handler(CommandHandler("generate", self.gen_image))
+        self.__dispatcher.add_handler(CallbackQueryHandler(self.keyboard_callback))
 
     def get_classes(self, update: Update, context: CallbackContext):
         answer = ", ".join([str(k) for k in self.label_dict.keys()])
@@ -28,7 +31,10 @@ class CGANBot:
     def gen_image(self, update: Update, context: CallbackContext):
         labels = update.message.text.split(" ")
         if len(labels) < 2:
-            update.message.reply_text("Usage: /generate <class_label>.\nUse /classes to list all supported class labels")
+            keyboard = []
+            for k in self.label_dict.keys():
+                keyboard.append([InlineKeyboardButton(k, callback_data=k)])
+            update.message.reply_text("Choose a label", reply_markup=InlineKeyboardMarkup(keyboard), quote=True)
             return
         label = labels[1]
         if label not in self.label_dict.keys():
@@ -36,13 +42,23 @@ class CGANBot:
             return
         label = self.label_dict[label]
         bio = self.generate_image(label)
-
         update.message.reply_photo(bio, quote=True)
+
+    def keyboard_callback(self, update: Update, context: CallbackContext):
+        query = update.callback_query
+        label = query.data
+        if label not in self.label_dict.keys():
+            query.edit_message_text(text="...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻ ")
+            return
+        label = self.label_dict[label]
+        bio = self.generate_image(label)
+        query.edit_message_text(text="done :3")
+        query.message.reply_photo(bio, quote=True)
 
     def generate_image(self, label) -> BytesIO:
         noise = torch.tensor(np.random.normal(0, 1, self.input_shape), dtype=torch.float)
         image = self.model(noise, [label])
-        image = (image + 1)/2
+        image = (image + 1) / 2
         image = torchvision.transforms.ToPILImage()(image[0])
         bio = BytesIO()
         bio.name = 'image.jpeg'
