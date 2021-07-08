@@ -9,7 +9,7 @@ if __name__ == '__main__':
         "blackhair": 1,
         "brownhair": 2,
         "glasses": 3,
-        "mustache": 4,
+        "beard": 4,
     }
     filters = [1024, 512, 256, 128, 64]
     input_shape = (1, 100, 1, 1)
