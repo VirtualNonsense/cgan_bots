@@ -50,9 +50,9 @@ class CGANBot:
         if label not in self.label_dict.keys():
             query.edit_message_text(text="...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻ ")
             return
-        label = self.label_dict[label]
-        bio = self.generate_image(label)
-        query.edit_message_text(text="done :3")
+        ilabel = self.label_dict[label]
+        bio = self.generate_image(ilabel)
+        query.edit_message_text(text=f"I proudly present to you a real generated person. Flavour: {label}")
         query.message.reply_photo(bio, quote=True)
 
     def generate_image(self, label) -> BytesIO:
