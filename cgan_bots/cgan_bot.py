@@ -21,8 +21,14 @@ class CGANBot:
         self.__updater: Updater = Updater(bot_key, use_context=True)
         self.__dispatcher: Dispatcher = self.__updater.dispatcher
         self.__dispatcher.add_handler(CommandHandler("classes", self.get_classes))
+        self.__dispatcher.add_handler(CommandHandler("help", self.help))
+        self.__dispatcher.add_handler(CommandHandler("start", self.help))
         self.__dispatcher.add_handler(CommandHandler("generate", self.gen_image))
         self.__dispatcher.add_handler(CallbackQueryHandler(self.keyboard_callback))
+
+    def help(self, update: Update, context: CallbackContext):
+        return update.message.reply_text("Use /classes to see all supported classes and /generate or /generate [class] "
+                                         "to generate a human face", quote=True)
 
     def get_classes(self, update: Update, context: CallbackContext):
         answer = ", ".join([str(k) for k in self.label_dict.keys()])
