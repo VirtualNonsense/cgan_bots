@@ -36,6 +36,9 @@ class CGANBot:
             for k in self.label_dict.keys():
                 keyboard.append([InlineKeyboardButton(k, callback_data=k)])
             return InlineKeyboardMarkup(keyboard)
+        if message.text.find(" ") == -1:
+            message.reply_text("Choose a label", reply_markup=generate_keyboard(), quote=True)
+            return
 
         labels = message.text.split(" ")
         if len(labels) < 2:
