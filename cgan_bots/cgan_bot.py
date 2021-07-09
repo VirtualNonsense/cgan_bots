@@ -29,20 +29,26 @@ class CGANBot:
         update.message.reply_text(answer, quote=True)
 
     def gen_image(self, update: Update, context: CallbackContext):
-        labels = update.message.text.split(" ")
-        if len(labels) < 2:
+        message = update.message if update.message is not None else update.edited_message
+
+        def generate_keyboard():
             keyboard = []
             for k in self.label_dict.keys():
                 keyboard.append([InlineKeyboardButton(k, callback_data=k)])
-            update.message.reply_text("Choose a label", reply_markup=InlineKeyboardMarkup(keyboard), quote=True)
-            return
+            return InlineKeyboardMarkup(keyboard)
+
+        labels = message.text.split(" ")
+        if len(labels) < 2:
+            message.reply_text("Choose a label", reply_markup=generate_keyboard(), quote=True)
         label = labels[1]
         if label not in self.label_dict.keys():
-            update.message.reply_text("unknown class. use /classes to list all supported class labels")
+            message.reply_text(f"The class \'{label}\' is not supported. Please choose a class from below",
+                               reply_markup=generate_keyboard(),
+                               quote=True)
             return
         label = self.label_dict[label]
         bio = self.generate_image(label)
-        update.message.reply_photo(bio, quote=True)
+        message.reply_photo(bio, quote=True)
 
     def keyboard_callback(self, update: Update, context: CallbackContext):
         query = update.callback_query
