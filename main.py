@@ -4,27 +4,51 @@ from secrets import bot_key
 from project_cgan.lib import CDCGAN
 
 if __name__ == '__main__':
-    class_dict = {
-        "bald": 0,
-        "blackhair": 1,
-        "brownhair": 2,
-        "glasses": 3,
-        "beard": 4,
+    people_dict = {
+        "Bald": 0,
+        "Blackhair": 1,
+        "Brownhair": 2,
+        "Glasses": 3,
+        "Beard": 4,
     }
-    filters = [1024, 512, 256, 128, 64]
-    input_shape = (1, 100, 1, 1)
-    image_size = 128
+    art_dict = {
+        "Electronic": 0,
+        "Hip-Hop": 1,
+        "Jazz": 2,
+        "Metal": 3,
+        "Pop": 4,
+    }
+    filters = [1024, 512, 256, 128, 64, 32]
+    input_shape = (1, 500, 1, 1)
+    image_size = 256
     color_channel = 3
-    model = CDCGAN.load_from_checkpoint(
-        "models/celebA_scheduler_ReduceLROnPlateau_only_g_128_100_1024-512-256-128-64-epoch=29.ckpt",
+    people_model = CDCGAN.load_from_checkpoint(
+        "models/celebA_high_res_256_500_1024-512-256-128-64-32-epoch=26.ckpt",
         input_dim=input_shape[1],
-        amount_classes=len(class_dict),
+        amount_classes=len(people_dict),
         filter_sizes=filters,
         color_channels=color_channel,
         image_size=image_size,
         device="cpu"
     )
-    model.eval()
+    people_model.eval()
+
+    artwork_model = CDCGAN.load_from_checkpoint(
+        "models/cover_art_high_res_dataloader_256_500_1024-512-256-128-64-32-epoch=836.ckpt",
+        input_dim=input_shape[1],
+        amount_classes=len(people_dict),
+        filter_sizes=filters,
+        color_channels=color_channel,
+        image_size=image_size,
+        device="cpu"
+    )
+    artwork_model.eval()
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    b = cgan_bots.cgan_bot.CGANBot(bot_key, model, input_shape, class_dict)
+    b = cgan_bots.cgan_bot.CGANBot(bot_key,
+                                   people_model,
+                                   input_shape,
+                                   people_dict,
+                                   artwork_model,
+                                   input_shape,
+                                   art_dict)
     b.run()

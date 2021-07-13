@@ -14,70 +14,138 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class CGANBot:
-    def __init__(self, bot_key: str, model, input_shape: Tuple[int, int, int, int], label_dict: Dict[str, int]):
-        self.label_dict = label_dict
-        self.input_shape = input_shape
-        self.model = model
-        self.__updater: Updater = Updater(bot_key, use_context=True)
+    def __init__(self,
+                 bot_key: str,
+                 people_model,
+                 people_shape: Tuple[int, int, int, int],
+                 people_dict: Dict[str, int],
+                 art_model,
+                 art_shape: Tuple[int, int, int, int],
+                 art_dict: Dict[str, int],):
+        self.people_dict = people_dict
+        self.people_input_shape = people_shape
+        self.people_model = people_model
+        self.art_model = art_model
+        self.art_shape = art_shape
+        self.art_dict = art_dict
+        self.__updater: Updater = Updater(bot_key,
+                                          use_context=True,
+                                          request_kwargs={'read_timeout': 6, 'connect_timeout': 7})
+        self.__peopleCMD = "generate_people"
+        self.__coverartCMD = "generate_coverart"
         self.__dispatcher: Dispatcher = self.__updater.dispatcher
-        self.__dispatcher.add_handler(CommandHandler("classes", self.get_classes))
         self.__dispatcher.add_handler(CommandHandler("help", self.help))
         self.__dispatcher.add_handler(CommandHandler("start", self.help))
-        self.__dispatcher.add_handler(CommandHandler("generate", self.gen_image))
+        self.__dispatcher.add_handler(CommandHandler(self.__peopleCMD, self.gen_face))
+        self.__dispatcher.add_handler(CommandHandler(self.__coverartCMD, self.gen_artwork))
         self.__dispatcher.add_handler(CallbackQueryHandler(self.keyboard_callback))
 
     def help(self, update: Update, context: CallbackContext):
-        return update.message.reply_text("Use /classes to see all supported classes and /generate or /generate [class] "
-                                         "to generate a human face", quote=True)
+        return update.message.reply_text("Use /generate_people or /generate_people [class] "
+                                         "to generate a human face with a specific trade. "
+                                         "Use /generate_coverart or /generate_coverart [genre] "
+                                         "to generate a cover artwork for given genre", quote=True)
 
-    def get_classes(self, update: Update, context: CallbackContext):
-        answer = ", ".join([str(k) for k in self.label_dict.keys()])
-        update.message.reply_text(answer, quote=True)
-
-    def gen_image(self, update: Update, context: CallbackContext):
+    def gen_artwork(self, update: Update, context: CallbackContext):
         message = update.message if update.message is not None else update.edited_message
 
-        def generate_keyboard():
-            keyboard = []
-            for k in self.label_dict.keys():
-                keyboard.append([InlineKeyboardButton(k, callback_data=k)])
-            return InlineKeyboardMarkup(keyboard)
         if message.text.find(" ") == -1:
-            message.reply_text("Choose a label", reply_markup=generate_keyboard(), quote=True)
+            message.reply_text("Choose a label",
+                               reply_markup=CGANBot.generate_keyboard(self.art_dict, self.__coverartCMD), quote=True)
             return
 
         labels = message.text.split(" ")
         if len(labels) < 2:
-            message.reply_text("Choose a label", reply_markup=generate_keyboard(), quote=True)
+            message.reply_text("Choose a label",
+                               reply_markup=CGANBot.generate_keyboard(self.art_dict, self.__coverartCMD), quote=True)
         label = labels[1]
-        if label not in self.label_dict.keys():
+        if label not in self.art_dict.keys():
             message.reply_text(f"The class \'{label}\' is not supported. Please choose a class from below",
-                               reply_markup=generate_keyboard(),
+                               reply_markup=CGANBot.generate_keyboard(self.art_dict, self.__coverartCMD),
                                quote=True)
             return
-        label = self.label_dict[label]
-        bio = self.generate_image(label)
+        label = self.art_dict[label]
+        bio = self.generate_artwork(label)
         message.reply_photo(bio, quote=True)
+
+    def gen_face(self, update: Update, context: CallbackContext):
+        message = update.message if update.message is not None else update.edited_message
+
+        if message.text.find(" ") == -1:
+            message.reply_text("Choose a label",
+                               reply_markup=CGANBot.generate_keyboard(self.people_dict, self.__peopleCMD),
+                               quote=True)
+            return
+
+        labels = message.text.split(" ")
+        if len(labels) < 2:
+            message.reply_text("Choose a label",
+                               reply_markup=CGANBot.generate_keyboard(self.people_dict, self.__peopleCMD),
+                               quote=True)
+        label = labels[1]
+        if label not in self.people_dict.keys():
+            message.reply_text(f"The class \'{label}\' is not supported. Please choose a class from below",
+                               reply_markup=CGANBot.generate_keyboard(self.people_dict, self.__peopleCMD),
+                               quote=True)
+            return
+        label = self.people_dict[label]
+        bio = self.generate_human_face(label)
+        message.reply_photo(bio, quote=True)
+
+    @staticmethod
+    def generate_keyboard(dict: Dict[str, int], command: str):
+        keyboard = []
+        for k in dict.keys():
+            keyboard.append([InlineKeyboardButton(k, callback_data=",".join([command, k]))])
+        return InlineKeyboardMarkup(keyboard)
 
     def keyboard_callback(self, update: Update, context: CallbackContext):
         query = update.callback_query
-        label = query.data
-        if label not in self.label_dict.keys():
-            query.edit_message_text(text="...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻ ")
+        command, label = query.data.split(",")
+        bio: BytesIO
+        if command == self.__coverartCMD:
+            if label not in self.art_dict.keys():
+                query.edit_message_text(text=f"...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻\n"
+                                             f"He asked me to find {label} in {self.art_dict.keys()}.... \n"
+                                             f"Clearly a n00b.")
+                return
+            ilabel = self.art_dict[label]
+            bio = self.generate_artwork(ilabel)
+            query.edit_message_text(text=f"I proudly present to you groovy piece of {label.lower()} cover artwork.")
+        elif command == self.__peopleCMD:
+            if label not in self.people_dict.keys():
+                query.edit_message_text(text=f"...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻\n"
+                                             f"He asked me to find {label} in {self.people_dict.keys()}.... \n"
+                                             f"Clearly a n00b.")
+                return
+            ilabel = self.people_dict[label]
+            bio = self.generate_human_face(ilabel)
+            query.edit_message_text(text=f"I proudly present to you a real generated person. Flavour: {label}")
+        else:
+            query.edit_message_text(text="...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻ \n"
+                                         f"He asked me to {command} even though I don't know how....")
             return
-        ilabel = self.label_dict[label]
-        bio = self.generate_image(ilabel)
-        query.edit_message_text(text=f"I proudly present to you a real generated person. Flavour: {label}")
         query.message.reply_photo(bio, quote=True)
 
-    def generate_image(self, label) -> BytesIO:
-        noise = torch.tensor(np.random.normal(0, 1, self.input_shape), dtype=torch.float)
-        image = self.model(noise, [label])
+    def generate_human_face(self, label) -> BytesIO:
+        noise = torch.tensor(np.random.normal(0, 1, self.people_input_shape), dtype=torch.float)
+        image = self.people_model(noise, [label])
         image = (image + 1) / 2
         image = torchvision.transforms.ToPILImage()(image[0])
         bio = BytesIO()
-        bio.name = 'image.jpeg'
-        image.save(bio, 'JPEG')
+        bio.name = 'face.png'
+        image.save(bio, 'PNG')
+        bio.seek(0)
+        return bio
+
+    def generate_artwork(self, label) -> BytesIO:
+        noise = torch.tensor(np.random.normal(0, 1, self.art_shape), dtype=torch.float)
+        image = self.art_model(noise, [label])
+        image = (image + 1) / 2
+        image = torchvision.transforms.ToPILImage()(image[0])
+        bio = BytesIO()
+        bio.name = 'artwork.png'
+        image.save(bio, 'PNG')
         bio.seek(0)
         return bio
 
