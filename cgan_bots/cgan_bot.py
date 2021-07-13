@@ -58,7 +58,7 @@ class CGANBot:
         if len(labels) < 2:
             message.reply_text("Choose a label",
                                reply_markup=CGANBot.generate_keyboard(self.art_dict, self.__coverartCMD), quote=True)
-        label = labels[1]
+        label = labels[1].capitalize()
         if label not in self.art_dict.keys():
             message.reply_text(f"The class \'{label}\' is not supported. Please choose a class from below",
                                reply_markup=CGANBot.generate_keyboard(self.art_dict, self.__coverartCMD),
@@ -82,7 +82,7 @@ class CGANBot:
             message.reply_text("Choose a label",
                                reply_markup=CGANBot.generate_keyboard(self.people_dict, self.__peopleCMD),
                                quote=True)
-        label = labels[1]
+        label = labels[1].capitalize()
         if label not in self.people_dict.keys():
             message.reply_text(f"The class \'{label}\' is not supported. Please choose a class from below",
                                reply_markup=CGANBot.generate_keyboard(self.people_dict, self.__peopleCMD),
