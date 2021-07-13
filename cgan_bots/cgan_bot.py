@@ -42,9 +42,9 @@ class CGANBot:
 
     def help(self, update: Update, context: CallbackContext):
         return update.message.reply_text("Use /generate_people or /generate_people [class] "
-                                         "to generate a human face with a specific trade. "
+                                         "to generate a human face with a specific trade.\n"
                                          "Use /generate_coverart or /generate_coverart [genre] "
-                                         "to generate a cover artwork for given genre", quote=True)
+                                         "to generate cover artwork for a given genre.", quote=True)
 
     def gen_artwork(self, update: Update, context: CallbackContext):
         message = update.message if update.message is not None else update.edited_message
@@ -111,7 +111,7 @@ class CGANBot:
                 return
             ilabel = self.art_dict[label]
             bio = self.generate_artwork(ilabel)
-            query.edit_message_text(text=f"I proudly present to you groovy piece of {label.lower()} cover artwork.")
+            query.edit_message_text(text=f"I proudly present to you a groovy piece of {label.lower()} cover artwork.")
         elif command == self.__peopleCMD:
             if label not in self.people_dict.keys():
                 query.edit_message_text(text=f"...my programmer is apparently not able to do his job.... (╯°□°)╯︵ ┻━┻\n"
